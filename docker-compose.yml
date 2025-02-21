@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: database
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: voting
+
+  frontend:
+    build:
+      context: ./node-frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./node-frontend:/app
+      - /app/node_modules
+
+  service-gateway:
+    build:
+      context: ./python-service-gateway
+      dockerfile: Dockerfile
+    container_name: service-gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./python-service-gateway:/app
+    depends_on:
+      - service-blue
+      - service-green
+
+  service-blue:
+    build:
+      context: ./node-service-blue
+      dockerfile: Dockerfile
+    container_name: service-blue
+    ports:
+      - "3010:3010"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./node-service-blue:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+
+  service-green:
+    build:
+      context: ./python-service-green
+      dockerfile: Dockerfile
+    container_name: service-green
+    ports:
+      - "3020:3020"
+    environment:
+      - FLASK_ENV=development
+    volumes:
+      - ./python-service-green:/app
+    depends_on:
+      - mongodb

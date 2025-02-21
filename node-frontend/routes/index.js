@@ -1,33 +1,42 @@
-const express = require("express");
-
+const express = require('express');
+const axios = require('axios');
 const router = express.Router();
-const axios = require("axios");
 
-const votes = {
-  spaces: [],
-  tabs: [],
-};
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://service-gateway:5000';
+const VALID_CHOICES = ['spaces', 'tabs', 'clear'];
 
-module.exports = () => {
-  router.get("/", async (req, res, next) => {
+class VoteController {
+  /**
+   * Handles the voting request and renders the response
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   * @param {Function} next - Express next middleware function
+   */
+  static async handleVote(req, res, next) {
     try {
-      if (
-        req.query.choice &&
-        req.query.choice !== "spaces" &&
-        req.query.choice !== "tabs" &&
-        req.query.choice !== "clear"
-      ) {
-        return res.status(400).end();
+      const { choice } = req.query;
+
+      // Validate choice if present
+      if (choice && !VALID_CHOICES.includes(choice)) {
+        return res.status(400).json({
+          error: 'Invalid choice. Must be one of: spaces, tabs, clear'
+        });
       }
 
-      const { data } = await axios.get(
-        `http://127.0.0.1:3001?choice=${req.query.choice}`
-      );
-      return res.render("index", data);
-    } catch (err) {
-      return next(err);
-    }
-  });
+      // Forward request to gateway service
+      const response = await axios.get(`${GATEWAY_URL}`, {
+        params: { choice },
+        timeout: 5000
+      });
 
-  return router;
-};
+      return res.render('index', response.data);
+    } catch (error) {
+      return next(error);
+    }
+  }
+}
+
+// Routes
+router.get('/', VoteController.handleVote);
+
+module.exports = () => router;

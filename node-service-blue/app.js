@@ -1,14 +1,27 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const dbConfig = require('./config/database');
+const logger = require('./config/logger');
 const createError = require("http-errors");
-const express = require("express");
-const logger = require("morgan");
+const morgan = require("morgan");
 
 const indexRouter = require("./routes/index");
 
 const app = express();
 
-app.use(logger("dev"));
+app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Connect to MongoDB
+mongoose.connect(dbConfig.url, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+}).then(() => {
+  logger.info('Connected to MongoDB');
+}).catch((err) => {
+  logger.error('Error connecting to MongoDB', err);
+});
 
 app.use("/", indexRouter);
 

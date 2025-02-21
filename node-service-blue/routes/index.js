@@ -1,49 +1,41 @@
-const express = require("express");
-
+const express = require('express');
 const router = express.Router();
-const { MongoClient } = require("mongodb");
 
-const uri = "mongodb://localhost";
-const client = new MongoClient(uri);
+const logger = require('../config/logger');
+const VoteModel = require('../models/VoteModel');
 
-// Fibonacci function to simulate delay
-function fibonacci(n) {
-  if (n < 2) {
-    return n;
+class VoteController {
+  /**
+   * Process voting request
+   * @param {Object} req - Express request object
+   * @param {Object} res - Express response object
+   */
+  static async handleVote(req, res) {
+    try {
+      const { choice } = req.query;
+
+      if (choice === 'clear') {
+        await VoteModel.clearVotes();
+        logger.info('Votes cleared successfully');
+      } else if (choice) {
+        await VoteModel.addVote(choice);
+        logger.info(`Vote recorded for: ${choice}`);
+      }
+
+      const counts = await VoteModel.getCounts();
+      return res.json(counts);
+
+    } catch (error) {
+      logger.error('Error processing vote:', error);
+      return res.status(500).json({
+        error: 'Internal server error',
+        message: error.message
+      });
+    }
   }
-  return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-/* GET home page. */
-router.get("/", async (req, res, next) => {
-  try {
-    await client.connect({ useNewUrlParser: true });
-
-    const database = client.db("voting");
-    const votes = database.collection("votes");
-
-    if (req.query.choice === "clear") {
-      // This will delete all documents in the votes collection
-      await votes.deleteMany({});
-    } else if (req.query.choice) {
-      // Insert a new document with the choice
-      await votes.insertOne({ choice: req.query.choice });
-    }
-
-    const spaces = await votes.countDocuments({ choice: "spaces" });
-    const tabs = await votes.countDocuments({ choice: "tabs" });
-
-    if(Math.random() < 0.5) {
-      fibonacci(40); 
-    }
-
-    return res.json({
-      spaces,
-      tabs,
-    });
-  } catch (err) {
-    return next(err);
-  }
-});
+// Routes
+router.get('/', VoteController.handleVote);
 
 module.exports = router;

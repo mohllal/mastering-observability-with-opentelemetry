@@ -1,12 +1,23 @@
-# Start Service with OTel Agent
-opentelemetry-instrument --traces_exporter console --metrics_exporter none --logs_exporter none --service_name service-green flask run --port 3010
+# Python Service Green
 
-# Enable OTel Log Instrumentation
+## Start Service with OTel Agent
 
-## Mac/Linux
+```bash
+opentelemetry-instrument --traces_exporter console --metrics_exporter none --logs_exporter none --service_name service-green flask run --port 3020
+```
+
+## Enable OTel Log Instrumentation
+
+### Mac/Linux
+
+```bash
 export OTEL_PYTHON_LOG_CORRELATION=true
 export OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+```
 
-## Windows
+### Windows
+
+```bash
 set OTEL_PYTHON_LOG_CORRELATION=true
 set OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+```
