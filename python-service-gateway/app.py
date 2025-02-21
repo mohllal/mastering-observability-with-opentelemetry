@@ -1,14 +1,19 @@
 from typing import Dict, Any, Tuple
 import logging
-from flask import Flask, request, jsonify
-import requests
 
+import requests
+from flask import Flask, request, jsonify
+from opentelemetry_py import init_telemetry
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# initialize OpenTelemetry
+flask_instrumentor = init_telemetry("service-gateway", "1.0.0")
+flask_instrumentor.instrument_app(app)
 
 # Configuration
 SERVICE_PORTS = {"blue": 3010, "green": 3020}

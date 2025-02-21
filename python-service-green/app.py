@@ -1,13 +1,19 @@
 from typing import Dict, Tuple
 import logging
+
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
+from opentelemetry_py import init_telemetry
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+# initialize OpenTelemetry
+flask_instrumentor = init_telemetry("service-green", "1.0.0")
+flask_instrumentor.instrument_app(app)
 
 # MongoDB configuration
 MONGODB_URI = "mongodb://user:pass@database:27017/"

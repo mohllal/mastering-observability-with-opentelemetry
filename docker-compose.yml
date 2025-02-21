@@ -26,15 +26,18 @@ services:
 
   service-gateway:
     build:
-      context: ./python-service-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: python-service-gateway/Dockerfile
     container_name: service-gateway
     ports:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
+      - OTEL_PYTHON_LOG_CORRELATION=true
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
     volumes:
       - ./python-service-gateway:/app
+      - ./_opentelemetry-py:/app/_opentelemetry-py
     depends_on:
       - service-blue
       - service-green
@@ -58,14 +61,17 @@ services:
 
   service-green:
     build:
-      context: ./python-service-green
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: python-service-green/Dockerfile
     container_name: service-green
     ports:
       - "3020:3020"
     environment:
       - FLASK_ENV=development
+      - OTEL_PYTHON_LOG_CORRELATION=true
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
     volumes:
       - ./python-service-green:/app
+      - ./_opentelemetry-py:/app/_opentelemetry-py
     depends_on:
       - mongodb
