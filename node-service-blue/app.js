@@ -1,3 +1,9 @@
+const pkg = require('./package.json');
+
+// initialize OpenTelemetry
+const initOpenTelemetry = require("@local/opentelemetry-js");
+initOpenTelemetry(pkg.name, pkg.version);
+
 const express = require('express');
 const mongoose = require('mongoose');
 const dbConfig = require('./config/database');

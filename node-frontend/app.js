@@ -1,3 +1,9 @@
+const pkg = require('./package.json');
+
+// initialize OpenTelemetry
+const initOpenTelemetry = require("@local/opentelemetry-js");
+initOpenTelemetry(pkg.name, pkg.version);
+
 const path = require("path");
 
 const createError = require("http-errors");

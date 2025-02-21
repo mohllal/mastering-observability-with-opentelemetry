@@ -11,8 +11,8 @@ services:
 
   frontend:
     build:
-      context: ./node-frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: node-frontend/Dockerfile
     container_name: frontend
     ports:
       - "8080:8080"
@@ -21,6 +21,8 @@ services:
     volumes:
       - ./node-frontend:/app
       - /app/node_modules
+      - ./_opentelemetry-js:/app/_opentelemetry-js
+      - /app/_opentelemetry-js/node_modules
 
   service-gateway:
     build:
@@ -39,8 +41,8 @@ services:
 
   service-blue:
     build:
-      context: ./node-service-blue
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: node-service-blue/Dockerfile
     container_name: service-blue
     ports:
       - "3010:3010"
@@ -49,6 +51,8 @@ services:
     volumes:
       - ./node-service-blue:/app
       - /app/node_modules
+      - ./_opentelemetry-js:/app/_opentelemetry-js
+      - /app/_opentelemetry-js/node_modules
     depends_on:
       - mongodb
 
