@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Tuple
 import logging
 
@@ -16,15 +17,13 @@ flask_instrumentor = init_telemetry("service-green", "1.0.0")
 flask_instrumentor.instrument_app(app)
 
 # MongoDB configuration
-MONGODB_URI = "mongodb://user:pass@database:27017/"
+MONGODB_URI = os.getenv('MONGODB_URL', 'mongodb://localhost:27017/voting')
 DB_NAME = "voting"
 COLLECTION_NAME = "votes"
 
-# MongoDB setup - using service name from docker-compose
-uri = "mongodb://database:27017/voting"
-client = MongoClient(uri)
-db = client['voting']
-votes = db['votes']
+client = MongoClient(MONGODB_URI)
+db = client[DB_NAME]
+votes = db[COLLECTION_NAME]
 
 
 class VotingDatabase:

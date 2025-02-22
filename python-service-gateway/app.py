@@ -1,3 +1,4 @@
+import os
 from typing import Dict, Any, Tuple
 import logging
 
@@ -15,8 +16,10 @@ app = Flask(__name__)
 flask_instrumentor = init_telemetry("service-gateway", "1.0.0")
 flask_instrumentor.instrument_app(app)
 
-# Configuration
-SERVICE_PORTS = {"blue": 3010, "green": 3020}
+SERVICE_CONFIG = {
+    "blue": os.getenv("SERVICE_BLUE_URL", "http://localhost:3010"),
+    "green": os.getenv("SERVICE_GREEN_URL", "http://localhost:3020"),
+}
 
 
 class LoadBalancer:
@@ -52,9 +55,8 @@ load_balancer = LoadBalancer()
 
 def forward_request(service: str, choice: str) -> Tuple[Dict[str, Any], int]:
     """Forward the request to the appropriate service"""
-    port = SERVICE_PORTS[service]
-    # Using service name instead of localhost
-    url = f"http://service-{service}:{port}?choice={choice}"
+
+    url = f"{SERVICE_CONFIG[service]}?choice={choice}"
 
     try:
         response = requests.get(url, timeout=5)

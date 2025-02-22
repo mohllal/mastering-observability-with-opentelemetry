@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-const GATEWAY_URL = process.env.GATEWAY_URL || 'http://service-gateway:5000';
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:5000';
 const VALID_CHOICES = ['spaces', 'tabs', 'clear'];
 
 class VoteController {

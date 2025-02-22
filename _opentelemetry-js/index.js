@@ -14,15 +14,15 @@ const {
  * @returns {NodeSDK} Configured OpenTelemetry SDK instance
  */
 module.exports = (serviceName, serviceVersion) => {
+  const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces';
+
   // Create SDK configuration
   const sdk = new NodeSDK({
     resource: new Resource({
       [SEMRESATTRS_SERVICE_NAME]: serviceName,
       [SEMRESATTRS_SERVICE_VERSION]: serviceVersion
     }),
-    traceExporter: new OTLPTraceExporter({
-      url: 'http://jaeger:4318/v1/traces'  // Jaeger OTLP endpoint
-    }),
+    traceExporter: new OTLPTraceExporter({ url: otlpEndpoint }),
     instrumentations: [
       getNodeAutoInstrumentations({
         "@opentelemetry/instrumentation-fs": { enabled: false },

@@ -18,11 +18,15 @@ services:
       - "8080:8080"
     environment:
       - NODE_ENV=development
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318/v1/traces
+      - GATEWAY_URL=http://service-gateway:5000
     volumes:
       - ./node-frontend:/app
       - /app/node_modules
       - ./_opentelemetry-js:/app/_opentelemetry-js
       - /app/_opentelemetry-js/node_modules
+    depends_on:
+      - service-gateway
 
   service-gateway:
     build:
@@ -33,6 +37,9 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=development
+      - SERVICE_BLUE_URL=http://service-blue:3010
+      - SERVICE_GREEN_URL=http://service-green:3020
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318/v1/traces
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
     volumes:
@@ -51,6 +58,8 @@ services:
       - "3010:3010"
     environment:
       - NODE_ENV=development
+      - MONGODB_URL=mongodb://database:27017/voting
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318/v1/traces
     volumes:
       - ./node-service-blue:/app
       - /app/node_modules
@@ -68,6 +77,8 @@ services:
       - "3020:3020"
     environment:
       - FLASK_ENV=development
+      - MONGODB_URL=mongodb://database:27017/voting
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318/v1/traces
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
     volumes:
@@ -81,8 +92,23 @@ services:
     container_name: jaeger
     ports:
       - "16686:16686"  # UI
-      - "4317:4317"    # OTLP gRPC
-      - "4318:4318"    # OTLP HTTP
+      - "5317:4317"    # OTLP gRPC
+      - "5318:4318"    # OTLP HTTP
       - "5778:5778"    # Configs (sampling, etc.)
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+    depends_on:
+      - opentelemetry-collector
+  
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector-contrib:0.120.0
+    container_name: opentelemetry-collector
+    ports:
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
+      - "13133:13133"  # health_check extension
+      - "1777:1777"    # pprof extension
+      - "55679:55679"  # zpages extension
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./_opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml

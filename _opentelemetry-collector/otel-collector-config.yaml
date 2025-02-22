@@ -2,22 +2,29 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: localhost:4317
+        endpoint: 0.0.0.0:4317
       http:
-        endpoint: localhost:4318
+        endpoint: 0.0.0.0:4318
 processors:
   batch:
 
 exporters:
+  debug:
+    verbosity: detailed
+    sampling_initial: 1
+    sampling_thereafter: 5
   otlp/jaeger:
-    endpoint: localhost:5317
+    endpoint: jaeger:4317
     tls:
       insecure: true
 
 extensions:
   health_check:
+    endpoint: 0.0.0.0:13133
   pprof:
+    endpoint: 0.0.0.0:1777
   zpages:
+    endpoint: 0.0.0.0:55679
 
 service:
   extensions: [health_check, pprof, zpages]
@@ -25,4 +32,4 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlp/jaeger]
+      exporters: [otlp/jaeger, debug]

@@ -1,4 +1,4 @@
-const MONGODB_URI = 'mongodb://database:27017/voting';
+const MONGODB_URI = process.env.MONGODB_URL || 'mongodb://localhost:27017/voting';
 
 module.exports = {
   url: MONGODB_URI,
