@@ -3,6 +3,7 @@ const router = express.Router();
 
 const logger = require('../config/logger');
 const VoteModel = require('../models/VoteModel');
+const SlowOperation = require('../utils/SlowOperation');
 
 class VoteController {
   /**
@@ -13,6 +14,12 @@ class VoteController {
   static async handleVote(req, res) {
     try {
       const { choice } = req.query;
+
+      // Randomly trigger slow operation (20% chance)
+      if (Math.random() < 0.5) {
+        logger.info('Triggering random slow operation');
+        await SlowOperation.call("process-vote-slow-operation");
+      }
 
       if (choice === 'clear') {
         await VoteModel.clearVotes();
