@@ -4,10 +4,13 @@ services:
   mongodb:
     image: mongo:latest
     container_name: database
+    restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_DATABASE: voting
+    volumes:
+      - mongodb-data:/data/db
 
   frontend:
     build:
@@ -90,6 +93,7 @@ services:
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: jaeger
+    restart: unless-stopped
     ports:
       - "16686:16686"  # UI
       - "5317:4317"    # OTLP gRPC
@@ -97,18 +101,155 @@ services:
       - "5778:5778"    # Configs (sampling, etc.)
     environment:
       - COLLECTOR_OTLP_ENABLED=true
-    depends_on:
-      - opentelemetry-collector
   
   opentelemetry-collector:
     image: otel/opentelemetry-collector-contrib:0.120.0
     container_name: opentelemetry-collector
+    restart: unless-stopped
     ports:
       - "4317:4317"    # OTLP gRPC
       - "4318:4318"    # OTLP HTTP
+      - "8889:8889"    # Metrics exporter
       - "13133:13133"  # health_check extension
       - "1777:1777"    # pprof extension
       - "55679:55679"  # zpages extension
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
-      - ./_opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+      - ./_config/opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    depends_on:
+      - jaeger
+      - tempo
+      - prometheus
+      - loki
+
+  # Tempo runs as user 10001, and docker compose creates the volume as root.
+  # As such, we need to chown the volume in order for Tempo to start correctly.
+  tempo-init:
+      image: grafana/tempo:main-d8bf8fe
+      user: root
+      entrypoint:
+        - "chown"
+        - "10001:10001"
+        - "/var/tempo"
+      volumes:
+        - tempo-data:/var/tempo
+
+  tempo:
+    image: grafana/tempo:main-d8bf8fe
+    container_name: tempo
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3200/ready || exit 1" ]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./_config/tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo
+      - "6317:4317"   # OTLP gRPC
+      - "6318:4318"   # OTLP HTTP
+    depends_on:
+      - tempo-init
+
+  prometheus:
+    image: prom/prometheus:v3.2.0
+    container_name: prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy" ]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      # https://prometheus.io/docs/prometheus/latest/feature_flags/#remote-write-receiver
+      # https://prometheus.io/docs/prometheus/latest/storage/#overview
+      - '--web.enable-remote-write-receiver'
+      # https://prometheus.io/docs/prometheus/latest/feature_flags/#exemplars-storage
+      - '--enable-feature=exemplar-storage'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./_config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  loki:
+    image: grafana/loki:3.4
+    container_name: loki
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1" ]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - -config.file=/etc/loki/loki-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./_config/loki/loki.yaml:/etc/loki/loki-config.yaml
+      - loki-data:/loki
+
+  # Grafana remote rendering service
+  # https://grafana.com/grafana/plugins/grafana-image-renderer/
+  # https://github.com/grafana/grafana/issues/82958#issuecomment-2141318989
+  grafana-renderer:
+    image: grafana/grafana-image-renderer:3.12.1
+    container_name: grafana-renderer
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      - ENABLE_METRICS=false
+      - RENDERING_TIMING_METRICS=false
+      - LOG_LEVEL=debug
+      - RENDERING_VERBOSE_LOGGING=true
+      - RENDERING_ARGS=--no-sandbox,--disable-gpu
+
+  grafana:
+    image: grafana/grafana-oss:11.5.2-ubuntu
+    platform: linux/amd64
+    container_name: grafana
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:3000" ]
+      start_period: 20s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_USERS_VIEWERS_CAN_EDIT=true
+      - GF_USERS_EDITORS_CAN_ADMIN=true
+      - GF_RENDERING_SERVER_URL=http://grafana-renderer:8081/render
+      - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
+      - GF_LOG_FILTERS=rendering:debug
+      - GF_INSTALL_PLUGINS=https://storage.googleapis.com/integration-artifacts/grafana-exploretraces-app/grafana-exploretraces-app-latest.zip;grafana-traces-app,pyroscope-panel,grafana-image-renderer
+      - GF_FEATURE_TOGGLES_ENABLE=tempoSearch tempoBackendSearch tempoServiceGraph tempoApmTable traceToMetrics newTraceViewHeader metricsSummary correlations traceToProfiles tracesEmbeddedFlameGraph
+    volumes:
+      - ./_config/grafana/datasources:/etc/grafana/provisioning/datasources
+      - ./_config/grafana/plugins:/etc/grafana/provisioning/plugins
+      - ./_config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - tempo
+      - prometheus
+      - loki
+
+volumes:
+  mongodb-data:
+  grafana-data:
+  tempo-data:
+  prometheus-data:
+  loki-data:

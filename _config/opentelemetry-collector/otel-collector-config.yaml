@@ -1,0 +1,76 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  prometheus/otel:
+    config:
+      scrape_configs:
+        - job_name: "otel-collector"
+          scrape_interval: 10s
+          static_configs:
+            - targets: ["0.0.0.0:8888"]
+
+processors:
+  batch:
+
+  memory_limiter:
+    check_interval: 2s
+    limit_mib: 400
+    spike_limit_mib: 200
+
+exporters:
+  debug:
+    verbosity: detailed
+    sampling_initial: 1
+    sampling_thereafter: 5
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlphttp:
+    endpoint: http://loki:3100/otlp
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+  prometheus:
+    endpoint: "0.0.0.0:8889" # Metrics endpoint that Prometheus will scrape
+    namespace: otel # Adds 'otel_' prefix to all metrics
+    send_timestamps: true # Include timestamp information with metrics
+    metric_expiration: 180m # How long to retain metrics in memory
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  pprof:
+    endpoint: 0.0.0.0:1777
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, otlp/jaeger, otlp/tempo]
+    metrics/otel-collector:
+      receivers: [prometheus/otel]
+      processors: [batch]
+      exporters: [prometheusremotewrite]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug, loki]
