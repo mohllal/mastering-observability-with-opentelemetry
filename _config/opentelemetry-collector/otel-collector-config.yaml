@@ -40,10 +40,8 @@ exporters:
   prometheusremotewrite:
     endpoint: "http://prometheus:9090/api/v1/write"
   prometheus:
-    endpoint: "0.0.0.0:8889" # Metrics endpoint that Prometheus will scrape
-    namespace: otel # Adds 'otel_' prefix to all metrics
-    send_timestamps: true # Include timestamp information with metrics
-    metric_expiration: 180m # How long to retain metrics in memory
+    endpoint: "0.0.0.0:8889"
+    send_timestamps: true
   loki:
     endpoint: "http://loki:3100/loki/api/v1/push"
 
@@ -61,7 +59,7 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug, otlp/jaeger, otlp/tempo]
+      exporters: [otlp/jaeger, otlp/tempo]
     metrics/otel-collector:
       receivers: [prometheus/otel]
       processors: [batch]
@@ -69,8 +67,8 @@ service:
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug, prometheus]
+      exporters: [debug, prometheusremotewrite, prometheus]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug, loki]
+      exporters: [loki]

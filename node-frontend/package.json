@@ -11,6 +11,7 @@
     "express": "^4.18.2",
     "http-errors": "~1.6.2",
     "morgan": "~1.9.0",
+    "winston": "^3.3.3",
     "pug": "^3.0.2",
     "nodemon": "^3.0.3",
     "@local/opentelemetry-js": "file:./_opentelemetry-js"
