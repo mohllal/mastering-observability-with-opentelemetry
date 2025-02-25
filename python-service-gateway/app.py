@@ -1,38 +1,23 @@
 import os
 from typing import Dict, Any, Tuple
-import logging
 
 import requests
 from flask import Flask, request, jsonify
-from opentelemetry_py import init_instrumentation, init_resource_metrics
+from opentelemetry_py import init_logger
 
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from utils.instrumentation import start_instrumentation
 
 app = Flask(__name__)
+
+start_instrumentation(app)
+logger = init_logger(__name__)
+logger.info("Starting service-gateway application...")
+
 
 SERVICE_CONFIG = {
     "blue": os.getenv("SERVICE_BLUE_URL", "http://localhost:3010"),
     "green": os.getenv("SERVICE_GREEN_URL", "http://localhost:3020"),
 }
-
-
-def start_instrumentation():
-    """Start the OpenTelemetry instrumentation"""
-
-    logger.info("Starting OpenTelemetry instrumentation...")
-
-    # initialize instrumentation
-    flask_instrumentor = init_instrumentation("service-gateway", "1.0.0")
-    flask_instrumentor.instrument_app(app)
-
-    # setup resource metrics
-    init_resource_metrics("service-gateway")
-
-
-start_instrumentation()
 
 
 class LoadBalancer:

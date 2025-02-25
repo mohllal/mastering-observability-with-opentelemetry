@@ -21,7 +21,7 @@ services:
       - "8080:8080"
     environment:
       - NODE_ENV=development
-      - OTEL_EXPORTER_OTLP_URL=http://opentelemetry-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318
       - GATEWAY_URL=http://service-gateway:5000
     volumes:
       - ./node-frontend:/app
@@ -43,7 +43,7 @@ services:
       - FLASK_ENV=development
       - SERVICE_BLUE_URL=http://service-blue:3010
       - SERVICE_GREEN_URL=http://service-green:3020
-      - OTEL_EXPORTER_OTLP_URL=http://opentelemetry-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
     volumes:
@@ -63,7 +63,7 @@ services:
     environment:
       - NODE_ENV=development
       - MONGODB_URL=mongodb://database:27017/voting
-      - OTEL_EXPORTER_OTLP_URL=http://opentelemetry-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318
     volumes:
       - ./node-service-blue:/app
       - /app/node_modules
@@ -83,7 +83,7 @@ services:
     environment:
       - FLASK_ENV=development
       - MONGODB_URL=mongodb://database:27017/voting
-      - OTEL_EXPORTER_OTLP_URL=http://opentelemetry-collector:4318
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector:4318
       - OTEL_PYTHON_LOG_CORRELATION=true
       - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
     volumes:

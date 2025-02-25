@@ -1,32 +1,17 @@
 import os
 from typing import Dict, Tuple
-import logging
 
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
-from opentelemetry_py import init_instrumentation, init_resource_metrics
+from opentelemetry_py import init_logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from utils.instrumentation import start_instrumentation
 
 app = Flask(__name__)
 
-
-def start_instrumentation():
-    """Start the OpenTelemetry instrumentation"""
-
-    logger.info("Starting OpenTelemetry instrumentation...")
-
-    # initialize instrumentation
-    flask_instrumentor = init_instrumentation("service-green", "1.0.0")
-    flask_instrumentor.instrument_app(app)
-
-    # setup resource metrics
-    init_resource_metrics("service-green")
-
-
-start_instrumentation()
+start_instrumentation(app)
+logger = init_logger(__name__)
+logger.info("Starting service-gateway application...")
 
 # MongoDB configuration
 MONGODB_URI = os.getenv('MONGODB_URL', 'mongodb://localhost:27017/voting')

@@ -1,12 +1,6 @@
-const logger = require('../config/logger');
-const pkg = require('../package.json');
 const { initInstrumentation, initResourceMetrics } = require("@local/opentelemetry-js");
 
-function startInstrumentation() {
-  logger.info("Starting OpenTelemetry instrumentation...")
+const pkg = require('../package.json');
 
-  initInstrumentation(pkg.name, pkg.version);
-  initResourceMetrics(pkg.name);
-};
-
-module.exports = startInstrumentation;
+initInstrumentation(pkg.name, pkg.version);
+initResourceMetrics(pkg.name);

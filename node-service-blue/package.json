@@ -14,7 +14,6 @@
     "mongodb": "^6.3.0",
     "mongoose": "^6.0.11",
     "morgan": "~1.9.0",
-    "winston": "^3.3.3",
     "nodemon": "^3.0.3",
     "@local/opentelemetry-js": "file:./_opentelemetry-js"
   },

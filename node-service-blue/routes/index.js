@@ -1,9 +1,12 @@
 const express = require('express');
 const router = express.Router();
 
-const logger = require('../config/logger');
+const { initLogger } = require("@local/opentelemetry-js");
 const VoteModel = require('../models/VoteModel');
 const SlowOperation = require('../utils/SlowOperation');
+
+
+const logger = initLogger();
 
 class VoteController {
   /**

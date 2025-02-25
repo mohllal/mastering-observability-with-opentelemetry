@@ -1,15 +1,17 @@
+require("./utils/instrumentation");
+
+const path = require("path");
 const createError = require("http-errors");
 const express = require("express");
 const morgan = require("morgan");
-const path = require("path");
 
+const { initLogger } = require("@local/opentelemetry-js");
 const indexRouter = require("./routes/index");
-const startInstrumentation = require("./utils/instrumentation");
 
 const app = express();
+const logger = initLogger();
 
-// start the OpenTelemetry instrumentation
-startInstrumentation();
+logger.info('Starting frontend application...');
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -33,7 +35,9 @@ app.use((err, req, res, next) => {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
-  console.error(err);
+
+  logger.error(err);
+
   // render the error page
   res.status(err.status || 500);
   return res.render("error");
