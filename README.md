@@ -1,40 +1,106 @@
-# Mastering Observability with OpenTelemetry
+# OpenTelemetry Instrumentation Demo
 
-This is the repository for the LinkedIn Learning course `Mastering Observability with OpenTelemetry`. The full course is available from [LinkedIn Learning][lil-course-url].
+A demo of OpenTelemetry's capabilities using a simple voting application. This project showcases complete observability implementation including distributed tracing, metrics collection, and log aggregation across multiple services.
 
-![lil-thumbnail-url]
+This project is part of the LinkedIn Learning course [Mastering Observability with OpenTelemetry](https://www.linkedin.com/learning/mastering-observability-with-opentelemetry).
 
-Capturing and exporting telemetry data from modern cloud applications can be difficult and complicated. OpenTelemetry simplifies observability so you can collect telemetry from applications and services, allowing for analysis with a growing range of observability backends. It is now the second largest project in the Cloud Native Computing Foundation after Kubernetes (based on contributions) and it’s quickly becoming the key observability toolset for operators, SREs and developers. It provides a collection of tools, APIs, and SDKs for capturing metrics, distributed traces, and logs from applications to help you analyze your software’s performance and behavior. In this course, Daniel Khan shows you how to set up, configure, deploy, and analyze data from OpenTelemetry to gain actionable insights into your application performance.
+## Monitoring & Observability
 
-_See the readme file in the main branch for updated instructions and information._
+- Services are instrumented with OpenTelemetry.
+- Cross-service distributed tracing.
+- Traces are collected in Tempo and can be visualized in Grafana and also in Jaeger.
+- Metrics are stored in Prometheus.
+- Logs are aggregated in Loki.
+- The OpenTelemetry Collector handles all telemetry data routing.
 
-## Instructions
+## Architecture
 
-This repository has branches for each of the videos in the course. You can use the branch pop up menu in github to switch to a specific branch and take a look at the course at that stage, or you can add `/tree/BRANCH_NAME` to the URL to go to the branch you want to access.
+The application consists of four services and a complete observability stack.
 
-## Branches
+The following diagram illustrates the architecture of the voting application with OpenTelemetry observability.
 
-The branches are structured to correspond to the videos in the course. The naming convention is `CHAPTER#_MOVIE#`. As an example, the branch named `02_03` corresponds to the second chapter and the third video in that chapter.
+```mermaid
+%%{init: {'theme': 'light', "flowchart" : { "curve" : "basis" } } }%%
 
-Some branches will have a beginning and an end state. These are marked with the letters `b` for "beginning" and `e` for "end". The `b` branch contains the code as it is at the beginning of the movie. The `e` branch contains the code as it is at the end of the movie. The `main` branch holds the final state of the code when in the course.
+graph TB
+    subgraph "Application"
+        Frontend["Frontend<br/>(Node.js)"]
+        Gateway["Gateway<br/>(Python Flask)"]
+        BlueService["Service Blue<br/>(Node.js)"]
+        GreenService["Service Green<br/>(Python Flask)"]
+    end
 
-When switching from one exercise files branch to the next after making changes to the files, you may get a message like this:
+    subgraph "Database"
+        MongoDB[(MongoDB)]
+    end
 
-    error: Your local changes to the following files would be overwritten by checkout:        [files]
-    Please commit your changes or stash them before you switch branches.
-    Aborting
+    subgraph "Observability Stack"
+        Collector["OpenTelemetry Collector"]
+        subgraph "Backend Storage"
+            Tempo["Tempo"]
+            Prometheus["Prometheus"]
+            Loki["Loki"]
+        end
+        Grafana["Grafana Dashboard"]
+    end
 
-To resolve this issue:
+    %% Application Flow
+    Frontend -->|HTTP Requests| Gateway
+    Gateway -->|Load Balance| BlueService
+    Gateway -->|Load Balance| GreenService
+    BlueService -->|Store Votes| MongoDB
+    GreenService -->|Store Votes| MongoDB
 
-- Add changes to git using this command: git add .
-- Commit changes using this command: git commit -m "some message"
+    %% Observability connections
+    Frontend -.->|Telemetry| Collector
+    Gateway -.->|Telemetry| Collector
+    BlueService -.->|Telemetry| Collector
+    GreenService -.->|Telemetry| Collector
 
-### Instructor
+    %% Collector to Storage
+    Collector -->|Traces| Tempo
+    Collector -->|Metrics| Prometheus
+    Collector -->|Logs| Loki
 
-Daniel Khan
+    %% Visualization
+    Tempo -->|Trace Visualization| Grafana
+    Prometheus -->|Metric Visualization| Grafana
+    Loki -->|Log Visualization| Grafana
+```
 
-Technology Lead, Developer, Application Architect
-Check out my other courses on [LinkedIn Learning](https://www.linkedin.com/learning/instructors/daniel-khan?u=104).
+### Components
 
-[lil-course-url]: https://www.linkedin.com/learning/mastering-observability-with-opentelemetry
-[lil-thumbnail-url]: https://media.licdn.com/dms/image/D560DAQFjpuXtOLIJJA/learning-public-crop_675_1200/0/1714424939426?e=2147483647&v=beta&t=tcX7kejFmfRVOrKpwq-mb6x60OLLMOkyge4a5OoRQH4
+- **Frontend**: Node.js Express service that provides the user interface for voting.
+- **Service Gateway**: Python Flask service that acts as an API gateway and load balancer.
+- **Service Blue**: Node.js Express service that stores votes into the database.
+- **Service Green**: Python Flask service that stores votes into the database.
+- **MongoDB**: Database for storing voting data.
+
+### Observability Stack
+
+- **OpenTelemetry Collector**: Collects and processes telemetry data.
+- **Tempo**: Distributed tracing system.
+- **Prometheus**: Metrics collection and storage.
+- **Loki**: Log aggregation system.
+- **Grafana**: Visualization platform for all telemetry data.
+- **Jaeger**: Another distributed tracing system.
+
+## Running the Demo
+
+### Prerequisites
+
+- Docker and Docker Compose
+- Git
+
+### Running the Stack
+
+1. Start all services:
+
+```bash
+docker compose up -d
+```
+
+2. Access the applications:
+   - Frontend Application: <http://localhost:8080>
+   - Grafana: <http://localhost:3000>
+   - Jaeger UI: <http://localhost:16686>
